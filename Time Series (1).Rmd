@@ -1,0 +1,429 @@
+---
+title: "Penalized Regression"
+author: "Ahsan Ahmad, Varun Selvam, Nikita Muddapati"
+date: "2024-10-13"
+output: 
+  html_document:
+    theme: flatly
+    df_print: paged
+    toc: true
+    toc_float:
+      smooth_scroll: true
+---
+
+# From what perspective are you conducting the analysis? (Who are you? / Who are you working for?)
+
+We are finance analysts working for Goldman Sachs in the "Equity Strategy Team". The "Equity Strategy Team" is responsible for predicting stock prices along with conducting analysis on various stocks.
+
+# What is your question?
+
+The objective is to utilize time series to accurately forecast the price of Tesla stock. 
+
+# Dataset Description
+
+The dataset contains Tesla's stock prices over the past 5 years.
+
+URL: https://www.nasdaq.com/market-activity/stocks/tsla/historical?page=2&rows_per_page=10&timeline=y5
+
+There are 1,258 observations in this datset along with 7 columns.
+
+# Variable Description
+
+## Independent Variable
+
+* Close.Last: This is a numeric continuous variable. This variable also shows what the stocks price was at the end of the day. Furthermore, this will be the **Target Variable** for this analysis. 
+
+## Dependent Variables
+
+* Date: Show what the date was every day for the past 5 years. This is also the time component for the forecast. 
+
+* Volume: How much of Tesla's stock is traded each day.
+
+* Open: A continuous numeric variable that represents what Tesla's stock price was at the beginning of the trading day. 
+
+* High: A continuous numeric variable that shows the highest price that the stock reached during the trading day. 
+
+* Low: A continuous numeric variable that shows the lowest price that the stock reached during the trading day.
+
+# How are your variables suitable for your analysis method?
+
+The variables are somewhat well suited for forecasting. The dataset is non-stationary which indicates that there is a lot of variance per the Dickey-Fuller Test. This is further supported by the ACF plot which show that auto-correlation starts to decrease as the lag-order increases. The Granger Causality Test also supports this since it shows that the variables are unable to predict recent stock prices (5 days or within 365 days. The p-values for 5 days vs 365 days respectively are .81 and .97)
+
+Despite this however, we were able to utilize these variables somewhat to make predictions and achieve an RMSE of 8.178 utilizing the seasonal ARIMA price. This is alright since Tesla's average stock price is 199.79 dollars. The variablitity however is quite high with an SD of 86.34 dollars. Moreover, the 5 fold validation did return higher values but that could be due to the relatively low number of observation in this dataset. (See 5 fold validation for more details.)
+
+The residuals also hovered around zero which indicates that ARIMA is doing a good job at forecasting.
+
+
+# What are your conclusions (include references to one or two CLEARLY INDICATED AND IMPORTANT graphs or tables in your output)?
+
+It is observed that Tesla's daily returns are mostly near zero with few extreme values. Stationarity tests, such as the Augmented Dickey-Fuller (ADF) and KPSS tests, confirm that the data is non-stationary and needs differencing. The ADF test yielded a p-value of 0.4, and the KPSS test statistic of 5.07 exceeded critical values. The ACF and PACF plots reveal significant autocorrelation at multiple lags, with the PACF showing a sharp spike at lag 1, guiding the selection of the ARIMA model parameters.
+
+Additionally, the Auto ARIMA model forecasts Tesla's stock price over the next three months, with the price predicted to reach around 250 dollars, though the increasing width of the confidence interval shows uncertainty over time. The Holt-Winters Exponential Smoothing method  also provides an extended forecast for the next 26 weeks, predicting Tesla's stock price to surpass $400 after 100 trading days, again which also shows wide variation to an extent.
+
+Based on the analysis of various ARIMA models, the Auto ARIMA and Grid Search ARIMA models both selected the same optimal order of (0,1,0), indicating no autoregressive or moving average components and one differencing step. The AIC for these models was 8857.53, and both had similar error metrics, with an RMSE of 8.1919 and MAE of 5.635. However, the Seasonal ARIMA model did better by accounting for weekly seasonality, reducing the RMSE to 8.1783, and slightly improving the likelihood (-4424.5) compared to -4427.7 in Auto and Grid, indicating a better fit though the improvement is minimal. The Holt-Winters method further confirmed the trend, forecasting prices above $400 in the longer term though it shows uncertainty, as seen in the wide confidence intervals.
+
+Considering better RMSE, AIC values, accuracy and consistent performance with Seasonal ARIMA, this model fits the data well and could be the best option for forecasting Tesla stock prices, particularly if weekly trends exist.
+
+# Assumptions, Limitations, and Robustness checks
+
+## Assumptions
+
+1. Stationarity:
+The ARIMA and SARIMA models assume that the time series is stationary. To ensure stationarity, we conducted the Augmented Dickey-Fuller (ADF) test and differenced the data where necessary.
+However, in cases where the KPSS test contradicts the ADF test, we proceed under the assumption that differencing has adequately transformed the series into a stationary one. Although our time series is non-stationary, the residuals indicate that this model is stil fairly robust since all the residuals hovered around zero.
+
+2. Linearity:
+ARIMA models assume a linear relationship between past observations and future values. The models may not capture non-linear patterns in the data, although in practice ARIMA often performs well for financial time series, which exhibit relatively linear patterns over short periods.
+Independence of Residuals:
+
+3. Independence of Residuals:
+It is assumed that the residuals of the fitted ARIMA model are uncorrelated (i.e., white noise). This assumption was tested using the Ljung-Box test, which checks for autocorrelation in the residuals.
+
+4. Normality of Errors:
+We assume that the errors or residuals from the model are normally distributed. This is important for prediction intervals to be valid, although time series data, especially financial data, often exhibit non-normality.
+
+5. No Structural Breaks:
+The models assume there are no sudden structural breaks (e.g., policy changes, market crashes) within the time series, which could drastically affect future predictions.
+
+## Limitations
+
+1. ARIMA Order Selection:
+The Grid Search ARIMA and Auto ARIMA models select the optimal order based on criteria like AIC (Akaike Information Criterion), but this method may not always capture the true complexity of the data, especially during periods of high volatility, such as market crashes. (For instance the pandemic caused Tesla's stock to surge to a max of 409.97 dollars on Nov 4th, 2021.)
+
+2. Holt-Winters and SARIMA Seasonality Assumptions:
+The seasonality assumptions in SARIMA and Holt-Winters models rely on consistent, repeating cycles. Tesla stock prices may not exhibit clear seasonal behavior (e.g., quarterly effects), leading to potential overfitting or underperformance in cases where seasonality is either weak or absent.
+
+3. Granger Causality Test:
+The Granger Causality test assumes that the presence of a causal relationship can be inferred from lagged values. However, this is purely statistical and doesn’t necessarily imply true causality, especially in financial markets where external factors and events play a significant role. 
+
+For instance, when Elon Musk purchased Twitter, he was very busy running Twitter. This along with his initially chaotic management style at Twitter caused Tesla's stock to decrease since he was unable to pay full attention to Tesla.
+
+4. Data Granularity:
+The dataset operates on daily closing prices, which may not fully capture intra-day volatility or trading patterns. More granular data (e.g., minute-by-minute or hourly data) could provide better insights but would require much more computational power and complexity in modeling.
+
+## Robustness Checks
+
+1. Residual Diagnostics:
+The residuals from the ARIMA models were analyzed using the ACF of residuals and the Ljung-Box test to check for any remaining autocorrelation. The assumption is that the residuals are uncorrelated and resemble white noise, indicating that the model has captured all significant patterns in the data.
+
+2. Multiple Model Approaches:
+In addition to ARIMA, we applied Holt-Winters Exponential Smoothing and SARIMA models as robustness checks. These methods provide different ways to capture trends and seasonality, ensuring that our conclusions aren’t tied to a single modeling approach.
+
+3. Comparison of Auto ARIMA and Grid Search ARIMA:
+Both Auto ARIMA and a Grid Search for ARIMA orders were performed to cross-check which model selection method yields the best results. Auto ARIMA automates the process and helps identify optimal orders, while Grid Search allows for more direct control over the parameters being tested.
+
+4. Non-Stationary Data: 
+Although the data is non-stationary, the model did relatively well. However some other techinques that can be appled to address the non-stationary data is to do log transformations, differencing or moving average filtering.
+
+# Loading Packages and Data
+
+```{r loading packages and data, warning=FALSE, message=FALSE}
+# Load necessary libraries
+library(tidyverse)
+library(forecast)
+library(tseries)
+library(urca)
+library(lmtest)
+library(ggplot2)
+library(gridExtra)
+library(ggfortify)
+library(lubridate)
+
+# Load Tesla stock data
+tesla_data <- read.csv("C:\\Users\\varun\\Box Sync\\Business Analytics Degree\\Semesters\\Fall Semester 2024\\MKTG 6620\\HW_2\\Tesla_Stock_Historical_Data.csv")
+
+head(tesla_data)
+
+```
+
+# Data Preprocessing
+
+```{r}
+
+# First check for missing values
+# Define function to check for NAs
+find_na <- function(x) sum(is.na(x))
+
+# Apply function to each column with map()
+map(.x = tesla_data, .f = find_na) %>% 
+  unlist() %>% 
+  data.frame()
+
+# Changing data types to numeric and date type
+tesla_data <- tesla_data %>%
+  mutate(
+    # Remove $ sign and convert to numeric for relevant columns
+    Close.Last = as.numeric(gsub("[$,]", "", `Close.Last`)),
+    Open = as.numeric(gsub("[$,]", "", Open)),
+    High = as.numeric(gsub("[$,]", "", High)),
+    Low = as.numeric(gsub("[$,]", "", Low)),
+    Volume = as.numeric(gsub(",", "", Volume)),
+    # Convert Date column to Date format (with / format)
+    Date = mdy(Date)
+  )
+
+
+# Display the cleaned data
+print(head(tesla_data))
+
+# Check the structure to confirm changes
+str(tesla_data)
+
+# Optional: View the cleaned dataset
+summary(tesla_data)
+```
+
+There are no missing values in this dataset.
+
+# Exploratory Data Analysis (EDA)
+
+```{r}
+
+# Sort data by Date
+tesla_data <- tesla_data %>% arrange(Date)
+
+sapply(tesla_data, function(x) sum(is.na(x)))
+
+# Plot Tesla closing prices
+ggplot(tesla_data, aes(x = Date, y = Close.Last)) +
+  geom_line() +
+  labs(title = "Tesla Closing Prices", x = "Date", y = "Closing Price (USD)") +
+  theme_minimal()
+
+# Compute daily returns
+tesla_data <- tesla_data %>%
+  mutate(Returns = (Close.Last - lag(Close.Last)) / lag(Close.Last))
+
+# Plot the distribution of daily returns
+ggplot(tesla_data, aes(x = Returns)) +
+  geom_histogram(binwidth = 0.002, fill = "blue", alpha = 0.7) +
+  labs(title = "Distribution of Daily Returns for Tesla", x = "Daily Returns", y = "Frequency") +
+  theme_minimal()
+
+
+#View(tesla_data)
+
+```
+
+- The daily return is calculated as the percentage change between the closing price of the current day and the closing price of the previous day. 
+
+-The formula used is based on this concept:
+
+Returns = (Close_Last - lag(Close_Last)) / lag(Close_Last)
+
+This shows how much the stock's closing price changed relative to the previous day.
+
+- Tesla's daily returns distribution shows a bell-shaped curve centered around 0, indicating that most daily returns are close to zero, with fewer extreme positive or negative returns.
+
+
+# Tests for Stationarity
+
+```{r}
+# Augmented Dickey-Fuller (ADF) Test for stationarity
+adf_test <- adf.test(na.omit(tesla_data$Close.Last))
+print(adf_test)
+
+# KPSS Test for stationarity
+kpss_test <- ur.kpss(na.omit(tesla_data$Close.Last))
+summary(kpss_test)
+
+```
+
+The Augmented Dickey-Fuller (ADF) Test and KPSS Test are used to check stationarity, which is needed for modeling time series data. ADF tests for non-stationarity, while KPSS tests for stationarity.
+
+- According to the ADF test, Tesla' data appears to be non-stationary with p = 0.4 and greater than 0.05. The test statistic from the KPSS test = 5.07 and higher than all critical values meaning the data is again non-stationary.
+
+# ACF and PACF plots
+
+```{r}
+# ACF (Autocorrelation Function) plot
+acf(na.omit(tesla_data$Close.Last), main = "ACF for Tesla Closing Prices")
+
+# PACF (Partial Autocorrelation Function) plot
+pacf(na.omit(tesla_data$Close.Last), main = "PACF for Tesla Closing Prices")
+
+```
+
+
+ACF and PACF plots help us identify significant lags for the ARIMA model, guiding the selection of AR (AutoRegressive) and MA (Moving Average) components. Tesla's closing prices show significant autocorrelation which beings to decrease across multiple lags. This gradual decline in autocorrelation means that the time series is non-stationary. This is provides further support for the Dickey-Fuller Test. Hence, differencing might be necessary. 
+
+PACF plot shows a significant spike at lag 1 followed by values near zero for subsequent lags, indicating that only the most recent lag (lag 1) has a strong linear relationship with the current value, while higher-order lags do not contribute much to the current value.
+
+
+# ARIMA Model Hyperparameter Tuning via Grid Search
+
+```{r}
+# Hyperparameter Tuning via Grid Search
+p <- d <- q <- 0:2
+best_aic <- Inf
+best_order <- c(0,0,0)
+for (i in p) {
+  for (j in d) {
+    for (k in q) {
+      try({
+        model <- arima(tesla_data$Close.Last, order = c(i, j, k))
+        aic_val <- AIC(model)
+        if (aic_val < best_aic) {
+          best_aic <- aic_val
+          best_order <- c(i, j, k)
+        }
+      }, silent = TRUE)
+    }
+  }
+}
+cat("Best ARIMA Order:", best_order, "with AIC:", best_aic, "\n")
+
+# Fit the selected ARIMA model
+arima_model <- arima(tesla_data$Close.Last, order = best_order)
+summary(arima_model)
+
+```
+
+
+We’ve added a loop that performs a grid search over different (p, d, q) combinations to find the best ARIMA model by minimizing the AIC (Akaike Information Criterion). Alternately for more robustness checks we will use Auto ARIMA for model selection in the next section.
+
+The best AIC in this case is 8857.531 
+
+
+# Auto ARIMA for automatic model selection
+
+```{r}
+# Auto ARIMA for automatic model selection
+auto_model <- auto.arima(tesla_data$Close.Last)
+summary(auto_model)
+
+```
+
+It is observed that both Grid Search and Auto ARIMA gives the same ARIMA (0,1,0) output which confirms the robustness of our models that the best (p,q,d) parameters are being selected for this project.
+
+* The best paramters are: p = 0, q = 1, d = 0
+
+# Residual diagnostics
+
+```{r}
+# Residual diagnostics to check for autocorrelation using the ACF of residuals and the Ljung-Box test.
+residuals <- residuals(arima_model)
+autoplot(residuals) + ggtitle("Residuals from ARIMA Model")
+acf(residuals, main = "ACF of Residuals")
+Box.test(residuals, lag = 10, type = "Ljung-Box")
+
+```
+
+From the residual plot that shows the ARIMA model predicting Tesla's stock price, the residuals appear to fluctuate around zero without any obvious pattern. This is a good sign for the model as it suggests that the errors (residuals) are not systematic, which is one of the key criteria for evaluating a time series model.
+
+ARIMA model predicting Tesla's stock price, the residuals appear to fluctuate around zero without any obvious pattern. This is a good sign for the model as it suggests that the errors (residuals) are not systematic, which is one of the key criteria for evaluating a time series model.
+ 
+ The ACF plot of the residuals shows that almost all the autocorrelations fall within the confidence bounds (the blue dashed lines). This is a good sign, as it indicates that there is no significant autocorrelation in the residuals. The fact that the residuals appear to be uncorrelated means that the ARIMA model has captured most of the patterns in the data, and the remaining errors are likely to be random.
+
+However, there is a significant spike at lag 0, which is expected because it represents the correlation of the residuals with themselves (always 1). Beyond that, the autocorrelation values hover around 0, which suggests that the residuals resemble white noise.
+
+# Forecasting
+
+```{r}
+# Forecasting with confidence intervals (Assuming no seasonality)
+forecast_values <- forecast(arima_model, h = 90)
+autoplot(forecast_values) +
+  ggtitle("Tesla Stock Price Forecast with Confidence Intervals (No Seasonality)") +
+  labs(y = "Stock Price", x = "Count of Observations - Forecasting after 1258th Observation for the next 3 month")
+
+
+
+# Calculate 95% CI for forecasted values
+
+ci_95 <- data.frame(Lower_95 = forecast_values$lower[,2], 
+                    Upper_95 = forecast_values$upper[,2])
+
+head(ci_95)
+
+
+```
+
+The above graph forecasts the Tesla's stock price for the next 3 months along with a confidence interval as shown in the gray cloud area in the graph above. The grey line represents the point forecast, while the shaded area represents the 95% confidence intervals. The increasing width of the confidence intervals indicates uncertainty in the predictions as the forecast spread extends.The predicted stock price at the end of the 3-month period is about $250.
+ 
+
+
+# Seasonal ARIMA Model (SARIMAX)
+
+```{r}
+# Seasonal ARIMA Model (SARIMAX)
+sarima_model <- arima(tesla_data$Close.Last, order = c(1,1,1), seasonal = list(order = c(1,1,1), period = 5))
+summary(sarima_model)
+
+```
+
+The SARIMA model includes seasonality (period = 5) to capture weekly periodic patterns in the data.
+It can be seen above that after accounting for the seasonal change in months, the RMSE value decreased from 8.191 to 8.178 showing that the time patterns had a slight effect on Tesla's stock price.
+
+# Holt-Winters Exponential Smoothing
+
+```{r}
+# Convert the 'Close.Last' column to a time series object without seasonal frequency
+tesla_ts <- ts(tesla_data$Close.Last, frequency = 5)  # Assuming 5 trading days per week
+
+# Holt-Winters with weekly seasonality (assuming 5 trading days per week)
+hw_model <- HoltWinters(tesla_ts, seasonal = "additive")  # Try 'additive' or 'multiplicative'
+summary(hw_model)
+
+# Forecasting the next 90 days
+hw_forecast <- forecast(hw_model, h = 26)
+autoplot(hw_forecast) +
+  ggtitle("Holt-Winters Forecast for Tesla (Weekly Seasonality)")
+
+```
+
+This method is used as a robustness check, providing an alternative method for time series forecasting by capturing trends and seasonality. The graph forecasts Tesla's stock price for the next 26 weeks (almost 6 months) along with a confidence interval as shown in the gray cloud area. The stock price is predicted to be around 220 dollars and then increase 230 dollars afterwards, etc.
+
+# Time Series Cross-Validation
+
+```{r}
+# Cross Validation for Time Series with RMSE
+n <- length(tesla_data$Close.Last)
+folds <- cut(seq(1, n), breaks = 5, labels = FALSE)
+rmse_values <- c()  # Vector to store RMSE values
+
+for (i in 1:5) {
+  # Create training and test sets for each fold
+  test_indices <- which(folds == i, arr.ind = TRUE)
+  train_data <- tesla_data$Close.Last[-test_indices]
+  test_data <- tesla_data$Close.Last[test_indices]
+  
+  # Fit ARIMA model on the training data
+  arima_fit <- arima(train_data, order = c(1,1,1))
+  
+  # Forecast on the test set
+  forecasted <- forecast(arima_fit, h = length(test_data))
+  
+  # Calculate RMSE
+  rmse <- sqrt(mean((forecasted$mean - test_data)^2))
+  rmse_values <- c(rmse_values, rmse)  # Store the RMSE value for each fold
+  
+  # Output RMSE for each fold
+  cat("Fold", i, "RMSE:", rmse, "\n")
+}
+
+# Display all RMSE values across folds
+rmse_values
+```
+
+The code splits the data into 5 folds, fits an ARIMA model to each training set, forecasts on the test set, and computes the Mean Squared Error (MSE) for each fold, ensuring the model generalizes well.
+
+The RMSE values are significantly higher here than the 8.191 and 8.17 values we got through Grid Search, Auto ARIMA, and seasonal ARIMA modeling. This can be due to the initial models being fitted on the entire dataset and then evaluated on the same data (or a portion of the data close to the training set). In contrast, during CV, the model is trained on smaller subsets of the data and tested on unseen data which naturally results in a higher RMSE because the model is not as well-tuned for the smaller training set and subsequent subsets.
+
+
+# Granger Causality Test
+
+```{r}
+# Granger Causality Test (for causality)
+granger_test <- grangertest(Close.Last ~ Returns, order = 5, data = tesla_data)
+print(granger_test)
+
+granger_test_02 <- grangertest(Close.Last ~ Returns, order = 365, data = tesla_data)
+print(granger_test_02)
+
+```
+
+The Granger Causality Test determines whether one time series (e.g., returns) can predict another time series (e.g., closing price). The test helps analyze the causal relationships between different variables. The test shows that Returns do not Granger-cause Closing price since p-value = 0.81 > 0.05. At a 5-lag order, the past values of Returns do not have significant predictive power on Tesla's closing prices.
+
+The Grander Causality Test was then expanded to include a full year at 365-lag order. This however produced a higher value at .97 which is greater than .05. This indicates that even a year of Tesla's stock data does not have significant predictive power on Tesla's closing prices. 
+
+Additionally, these high p-values indicate that the probability of observing a result as extreme as these given that the null hypothesis is true is very high.
